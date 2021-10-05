@@ -5,6 +5,10 @@ import { switchMap } from 'rxjs/operators';
 import { Heroe, Publisher } from '../../interfaces/heroes.interface';
 import { HeroesService } from '../../services/heroes.service';
 
+import { MatDialog } from '@angular/material/dialog';
+import { MatSnackBar } from '@angular/material/snack-bar';
+
+import { ConfirmarComponent } from '../../components/confirmar/confirmar.component';
 @Component({
   selector: 'app-agregar',
   templateUrl: './agregar.component.html',
@@ -43,7 +47,9 @@ export class AgregarComponent implements OnInit {
   constructor(
     private heroesService: HeroesService,
     private activatedRoute: ActivatedRoute,
-    private router: Router
+    private router: Router,
+    private snackBar: MatSnackBar,
+    public dialog: MatDialog
   ) {}
 
   ngOnInit(): void {
@@ -65,21 +71,35 @@ export class AgregarComponent implements OnInit {
       // Actualizar
       this.heroesService
         .actualizarHeroe(this.heroe)
-        .subscribe((heroe) => console.log);
+        .subscribe((heroe) => this.mostrarSnackbar('Registro actualizado'));
     } else {
       // Crear
-      this.heroesService
-        .agregarHeroe(this.heroe)
-        .subscribe((heroe) =>
-          this.router.navigate(['/heroes/editar', heroe.id])
-        );
+      this.heroesService.agregarHeroe(this.heroe).subscribe((heroe) => {
+        this.router.navigate(['/heroes/editar', heroe.id]);
+        this.mostrarSnackbar('Registro creado');
+      });
     }
   }
 
   borrarHeroe() {
-    this.heroesService.borrarHeroe(this.heroe.id!).subscribe((resp) => {
-      console.log(resp);
-      this.router.navigate(['/heroes']);
+    const dialog = this.dialog.open(ConfirmarComponent, {
+      width: '50%',
+      data: this.heroe,
+    });
+
+    dialog.afterClosed().subscribe((result) => {
+      if (result) {
+        this.heroesService.borrarHeroe(this.heroe.id!).subscribe((resp) => {
+          console.log(resp);
+          this.router.navigate(['/heroes']);
+        });
+      }
+    });
+  }
+
+  mostrarSnackbar(mensaje: string) {
+    this.snackBar.open(mensaje, 'Ok!', {
+      duration: 2500,
     });
   }
 }
